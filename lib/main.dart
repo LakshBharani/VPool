@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:vpool/constants/keys.dart';
 import 'package:vpool/home.dart';
 import 'package:vpool/onboarding.dart';
 import 'package:vpool/personal.details.dart';
@@ -10,9 +11,8 @@ import 'package:google_fonts/google_fonts.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Supabase.initialize(
-      url: "https://tcuvywwvcumjwjnywinx.supabase.co",
-      anonKey:
-          "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRjdXZ5d3d2Y3Vtandqbnl3aW54Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDI0OTMxMDAsImV4cCI6MjAxODA2OTEwMH0.YVVGHEu80oENGVARGehwPauoGLNia9jh6YZWYxDiqwQ",
+      url: SUPABASE_URL,
+      anonKey: ANON_KEY,
       debug: true,
       authOptions:
           const FlutterAuthClientOptions(authFlowType: AuthFlowType.pkce));

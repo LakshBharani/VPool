@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'package:csc_picker/csc_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:vpool/constants/colors.dart';
