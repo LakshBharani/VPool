@@ -39,6 +39,7 @@ dependencies:
   supabase_flutter: ^2.0.0
   encrypted_shared_preferences: ^3.0.1
   google_maps_flutter: ^2.5.0
+  location: ^5.0.3
 
 dev_dependencies:
   flutter_test:

@@ -14,6 +14,7 @@ class OnBoarding extends StatelessWidget {
         title: const Text("Ride Share"),
         backgroundColor: appSecondaryColor,
         foregroundColor: Colors.black,
+        centerTitle: true,
       ),
       body: Stack(
         children: [

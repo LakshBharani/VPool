@@ -121,21 +121,23 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
                       stateValue == "" ||
                       cityValue == "") {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("Fill all fields to continue"),
+                      SnackBar(
+                        backgroundColor: Theme.of(context).colorScheme.error,
+                        content: const Text("Fill all fields to continue"),
                       ),
                     );
                     return;
                   }
                   await supabase.from('user_data').insert({
-                    'First Name': firstNameController.text,
-                    'Last Name': lastNameController.text,
-                    'Phone': phoneNumberController.text,
-                    'Gender': dropdownVal,
+                    'First Name': firstNameController.text.trim().toUpperCase(),
+                    'Last Name': lastNameController.text.trim().toUpperCase(),
+                    'Phone': phoneNumberController.text.trim(),
+                    'Gender': dropdownVal.trim().toUpperCase(),
                     'Country': countryValue,
                     'State': stateValue,
                     'City': cityValue,
-                  });
+                  }).then((value) => Navigator.pushNamedAndRemoveUntil(
+                      context, '/', (route) => false));
                 },
                 style: ElevatedButton.styleFrom(
                   padding:

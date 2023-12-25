@@ -85,6 +85,7 @@ class _LoginPageState extends State<LoginPage> {
                       ElevatedButton(
                         onPressed: () async {
                           print("${_emailController.text}@vitstudent.ac.in");
+                          FocusScope.of(context).unfocus();
                           if (_emailController.text.isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
@@ -94,13 +95,27 @@ class _LoginPageState extends State<LoginPage> {
                             return;
                           }
                           try {
-                            await supabase.auth.signInWithOtp(
-                                email:
-                                    "${_emailController.text}@vitstudent.ac.in",
-                                emailRedirectTo:
-                                    "com.laksh.vpool://login-callback/");
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text("Sending Link..."),
+                                ),
+                              );
+                            }
+                            await supabase.auth
+                                .signInWithOtp(
+                                    email:
+                                        "${_emailController.text}@vitstudent.ac.in",
+                                    emailRedirectTo:
+                                        "com.laksh.vpool://login-callback/")
+                                .then((value) => {
+                                      ScaffoldMessenger.of(context)
+                                          .hideCurrentSnackBar(),
+                                      print("Closed current snackbar"),
+                                    });
 
                             if (mounted) {
+                              print("Starting new snackbar");
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text("Check your Inbox."),
