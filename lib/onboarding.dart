@@ -67,7 +67,7 @@ class OnBoarding extends StatelessWidget {
                       onPressed: () => Navigator.pushNamed(context, '/login'),
                       style: ElevatedButton.styleFrom(
                         minimumSize: const Size(double.infinity, 50),
-                        backgroundColor: elemntPrimaryColor,
+                        backgroundColor: elementPrimaryColor,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),

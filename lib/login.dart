@@ -137,7 +137,7 @@ class _LoginPageState extends State<LoginPage> {
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 25, vertical: 13),
-                          backgroundColor: elemntPrimaryColor,
+                          backgroundColor: elementPrimaryColor,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),

@@ -1,6 +1,7 @@
 // ignore_for_file: avoid_print, use_build_context_synchronously, non_constant_identifier_names
 
 import 'dart:async';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -18,95 +19,485 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final Location _locationController = Location();
   final Completer _mapController = Completer<GoogleMapController>();
-  static const LatLng _pStart = LatLng(12.968688776803814, 79.15588731716967);
-  static const LatLng _pEnd = LatLng(11.943346102098497, 79.809578764766);
+  LatLng? _pStart;
+  LatLng? _pEnd;
   LatLng? _currentLocation;
-
+  double mapFlex = 9;
+  double bottomBarFlex = 5;
+  double mapPadding = 0;
+  final TextEditingController _sourceController =
+      TextEditingController(text: 'Current Location');
+  final TextEditingController _destinationController = TextEditingController();
   final Map<PolylineId, Polyline> _polyLines = {};
 
   @override
   void initState() {
     super.initState();
-    getLocationUpdates().then((_) => {
-          getPolylinePoints().then((coordinates) => {
-                generatePolylineFromPoints(coordinates),
-              }),
-        });
+    getLocationUpdates();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       body: Column(
         children: [
-          Expanded(
-            flex: 12,
-            child: _currentLocation == null
-                ? const Center(child: Text("Map Loading..."))
-                : GoogleMap(
-                    myLocationButtonEnabled: true,
-                    myLocationEnabled: true,
-                    onMapCreated: ((GoogleMapController controller) =>
-                        _mapController.complete(controller)),
-                    initialCameraPosition: CameraPosition(
-                      target: _currentLocation!,
-                      zoom: 16,
-                    ),
-                    markers: {
-                      const Marker(
-                          markerId: MarkerId("_sourceLocation"),
-                          icon: BitmapDescriptor.defaultMarker,
-                          position: _pStart),
-                      const Marker(
-                          markerId: MarkerId("_destinationLocation"),
-                          icon: BitmapDescriptor.defaultMarker,
-                          position: _pEnd),
-                    },
-                    polylines: Set<Polyline>.of(_polyLines.values),
-                  ),
-          ),
+          MapWidget(),
           BottomBarWidget(),
         ],
       ),
     );
   }
 
-  // Widget MapWidget() {
-  //   return Expanded(
-  //     flex: 12,
-  //     child: _currentLocation == null
-  //         ? const Center(child: Text("Map Loading..."))
-  //         : GoogleMap(
-  //             myLocationButtonEnabled: true,
-  //             myLocationEnabled: true,
-  //             onMapCreated: ((GoogleMapController controller) =>
-  //                 _mapController.complete(controller)),
-  //             initialCameraPosition: CameraPosition(
-  //               target: _currentLocation!,
-  //               zoom: 16,
-  //             ),
-  //             markers: {
-  //               const Marker(
-  //                   markerId: MarkerId("_sourceLocation"),
-  //                   icon: BitmapDescriptor.defaultMarker,
-  //                   position: _pStart),
-  //               const Marker(
-  //                   markerId: MarkerId("_destinationLocation"),
-  //                   icon: BitmapDescriptor.defaultMarker,
-  //                   position: _pEnd),
-  //             },
-  //             polylines: Set<Polyline>.of(_polyLines.values),
-  //           ),
-  //   );
-  // }
+  Widget MapWidget() {
+    return Expanded(
+      flex: mapFlex.toInt(),
+      child: _currentLocation == null
+          ? Center(
+              child: _locationController.hasPermission() ==
+                      PermissionStatus.granted
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text("Fetching your location..."),
+                        const SizedBox(height: 50),
+                        CircularProgressIndicator(
+                          color: elementPrimaryColor,
+                        ),
+                      ],
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text(
+                            "Please enable Location Services to continue"),
+                        const SizedBox(height: 50),
+                        ElevatedButton(
+                          onPressed: () async => {
+                            await _locationController.serviceEnabled()
+                                ? _locationController.requestPermission()
+                                : _locationController.requestService(),
+                          },
+                          child: const Text("Enable Location Services"),
+                        ),
+                      ],
+                    ),
+            )
+          : Stack(
+              children: [
+                GoogleMap(
+                  myLocationButtonEnabled: false,
+                  myLocationEnabled: true,
+                  zoomGesturesEnabled: false,
+                  rotateGesturesEnabled: false,
+                  padding: EdgeInsets.only(
+                    top: MediaQuery.of(context).padding.top,
+                  ),
+                  onMapCreated: ((GoogleMapController controller) =>
+                      _mapController.complete(controller)),
+                  initialCameraPosition: CameraPosition(
+                    target: _currentLocation!,
+                    zoom: 16,
+                  ),
+                  onTap: (LatLng pos) => {
+                    setState(() {
+                      mapFlex = 9;
+                      bottomBarFlex = 5;
+                      _pEnd != null || _pStart != null
+                          ? getPolylinePoints().then((coordinates) => {
+                                generatePolylineFromPoints(coordinates),
+                              })
+                          : null;
+                    }),
+                  },
+                  markers: _pEnd != null || _pStart != null
+                      ? {
+                          Marker(
+                              markerId: const MarkerId("_sourceLocation"),
+                              position: _pStart!),
+                          Marker(
+                              markerId: const MarkerId("_destinationLocation"),
+                              position: _pEnd!),
+                        }
+                      : {},
+                  polylines: Set<Polyline>.of(_polyLines.values),
+                ),
+                Positioned(
+                  bottom: 10,
+                  right: 10,
+                  child: GestureDetector(
+                    onTap: () => {
+                      FocusManager.instance.primaryFocus?.unfocus(),
+                      _polyLines.isNotEmpty
+                          ? getLocationUpdates().then((_) => {
+                                setState(() {
+                                  mapFlex = 9;
+                                  bottomBarFlex = 5;
+                                }),
+                                getPolylinePoints().then((coordinates) => {
+                                      generatePolylineFromPoints(coordinates),
+                                    }),
+                              })
+                          : _mapController.future.then((value) => {
+                                value.animateCamera(
+                                  CameraUpdate.newCameraPosition(
+                                    CameraPosition(
+                                      target: _currentLocation!,
+                                      zoom: 16,
+                                    ),
+                                  ),
+                                ),
+                                setState(() {
+                                  mapFlex = 9;
+                                  bottomBarFlex = 5;
+                                }),
+                              }),
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(100),
+                        color: Colors.white,
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color.fromARGB(255, 170, 170, 170),
+                            blurRadius: 3,
+                            offset: Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        Icons.my_location_rounded,
+                        size: 28,
+                        color: elementPrimaryColor,
+                      ),
+                    ),
+                  ),
+                )
+              ],
+            ),
+    );
+  }
 
   Widget BottomBarWidget() {
     return Expanded(
-      flex: 5,
+      flex: bottomBarFlex.toInt(),
       child: Container(
-        color: appPrimaryColor,
-        child: const Column(
-          children: [],
+        width: double.infinity,
+        color: Colors.white,
+        child: Column(
+          children: mapFlex == 9
+              ? [
+                  searchDestinationButton(),
+                  FavoritePlacesWidget(),
+                ]
+              : [
+                  Row(
+                    children: [
+                      Expanded(
+                          child: Column(
+                        children: [
+                          selectSourceButton(),
+                          selectDestinationButton(),
+                        ],
+                      )),
+                    ],
+                  )
+                ],
+        ),
+      ),
+    );
+  }
+
+  Widget selectSourceButton() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+      child: SingleChildScrollView(
+        child: Column(
+          children: [
+            TextFormField(
+              controller: _sourceController,
+              keyboardType: TextInputType.streetAddress,
+              onChanged: (value) => {
+                setState(() {
+                  _sourceController.text = value;
+                }),
+              },
+              onTap: () => {
+                _sourceController.text == "Current Location"
+                    ? setState(() {
+                        _sourceController.text = "";
+                      })
+                    : null,
+              },
+              onTapOutside: (value) => {
+                FocusManager.instance.primaryFocus?.unfocus(),
+              },
+              onEditingComplete: () => {
+                _sourceController.text == ""
+                    ? setState(() {
+                        _sourceController.text = "Current Location";
+                      })
+                    : null,
+              },
+              onFieldSubmitted: (value) => {
+                FocusManager.instance.primaryFocus?.unfocus(),
+                print("Source: $value")
+              },
+              style: TextStyle(
+                  fontSize: 14,
+                  color: _sourceController.text == "Current Location"
+                      ? CupertinoColors.activeBlue
+                      : Colors.black),
+              cursorHeight: 14,
+              autocorrect: false,
+              maxLines: 1,
+              cursorColor: elementSecondaryColor,
+              decoration: InputDecoration(
+                hintText: "Pickup Location",
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 0,
+                ),
+                hintStyle: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontSize: 14,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(1),
+                  borderSide: BorderSide.none,
+                ),
+                filled: true,
+                fillColor: Colors.grey.shade200,
+                suffixIcon: _sourceController.text == "Current Location"
+                    ? const Icon(
+                        Icons.my_location_rounded,
+                        color: CupertinoColors.activeBlue,
+                      )
+                    : _sourceController.text == ""
+                        ? null
+                        : GestureDetector(
+                            onTap: () => {
+                              setState(() {
+                                _sourceController.text = "";
+                              }),
+                            },
+                            child: Icon(
+                              Icons.cancel_outlined,
+                              color: Colors.grey.shade600,
+                              size: 20,
+                            ),
+                          ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget selectDestinationButton() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 0),
+      child: SingleChildScrollView(
+        child: Column(
+          children: [
+            TextFormField(
+              controller: _destinationController,
+              keyboardType: TextInputType.streetAddress,
+              onChanged: (value) => {
+                setState(() {
+                  _destinationController.text = value;
+                }),
+              },
+              onFieldSubmitted: (value) => {
+                FocusManager.instance.primaryFocus?.unfocus(),
+                print("Destination: $value")
+              },
+              onTapOutside: (value) => {
+                FocusManager.instance.primaryFocus?.unfocus(),
+              },
+              style: const TextStyle(fontSize: 14, color: Colors.black),
+              cursorHeight: 14,
+              autocorrect: false,
+              maxLines: 1,
+              cursorColor: elementSecondaryColor,
+              decoration: InputDecoration(
+                hintText: "Where To?",
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 0,
+                ),
+                hintStyle: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontSize: 14,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(1),
+                  borderSide: BorderSide.none,
+                ),
+                filled: true,
+                fillColor: Colors.grey.shade200,
+                suffixIcon: _destinationController.text != ""
+                    ? GestureDetector(
+                        onTap: () => {
+                          setState(() {
+                            _destinationController.text = "";
+                          }),
+                        },
+                        child: Icon(
+                          Icons.cancel_outlined,
+                          color: Colors.grey.shade600,
+                          size: 20,
+                        ),
+                      )
+                    : null,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget searchDestinationButton() {
+    return GestureDetector(
+      onTap: () => {
+        setState(() {
+          print(_currentLocation);
+          mapFlex = 2;
+          bottomBarFlex = 7;
+        }),
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        height: 70,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          color: elementSecondaryColor,
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.subdirectory_arrow_right_rounded,
+              color: elementPrimaryColor,
+              size: 25,
+            ),
+            const SizedBox(width: 10),
+            Text(
+              "Where To?",
+              style: TextStyle(
+                color: elementPrimaryColor,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget FavoritePlacesWidget() {
+    return Column(
+      children: [
+        shortCutWidget(1, "VIT Vellore, Tamil Nadu", "0 km"),
+        shortCutWidget(2, "Katpadi Railway Station", "3.1 km"),
+        shortCutWidget(3, "Chennai Airport, Tamil Nadu", "129 km"),
+      ],
+    );
+  }
+
+  Widget shortCutWidget(double index, String destination, String distance) {
+    return GestureDetector(
+      onTap: () => {
+        setState(() {
+          mapFlex = 2;
+          bottomBarFlex = 7;
+        }),
+        _pStart = _currentLocation,
+        _pEnd = index == 1
+            ? const LatLng(11.943346102098497, 79.809578764766)
+            : index == 2
+                ? const LatLng(12.971804174947863, 79.13829296711951)
+                : index == 3
+                    ? const LatLng(13.043346102098497, 80.209578764766)
+                    : null,
+        getPolylinePoints().then((coordinates) => {
+              generatePolylineFromPoints(coordinates),
+            }),
+      },
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 0),
+        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+        decoration: BoxDecoration(
+          borderRadius: index == 1
+              ? const BorderRadius.only(
+                  topLeft: Radius.circular(10),
+                  topRight: Radius.circular(10),
+                )
+              : index == 2
+                  ? BorderRadius.circular(0)
+                  : index == 3
+                      ? const BorderRadius.only(
+                          bottomLeft: Radius.circular(10),
+                          bottomRight: Radius.circular(10),
+                        )
+                      : null,
+          border: index == 2
+              ? Border.symmetric(
+                  vertical: BorderSide(color: Colors.grey.shade300))
+              : Border.all(color: Colors.grey.shade300),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      index == 1
+                          ? Icons.location_city_rounded
+                          : index == 2
+                              ? Icons.directions_railway_rounded
+                              : index == 3
+                                  ? Icons.local_airport_rounded
+                                  : null,
+                      size: 23,
+                      color: elementPrimaryColor,
+                    ),
+                    const SizedBox(width: 40),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(destination),
+                        Text(
+                          distance,
+                          style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.grey.shade600,
+                              fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 10),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 30,
+                  color: Colors.grey.shade800,
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -166,7 +557,7 @@ class _HomePageState extends State<HomePage> {
       bounds = LatLngBounds(southwest: source, northeast: destination);
     }
 
-    CameraUpdate cameraUpdate = CameraUpdate.newLatLngBounds(bounds, 90);
+    CameraUpdate cameraUpdate = CameraUpdate.newLatLngBounds(bounds, 70);
 
     return checkCameraLocation(cameraUpdate, mapController);
   }
@@ -196,10 +587,11 @@ class _HomePageState extends State<HomePage> {
     List<LatLng> polylineCoordinates = [];
     PolylinePoints polylinePoints = PolylinePoints();
     PolylineResult result = await polylinePoints.getRouteBetweenCoordinates(
-        GOOGLE_MAPS_API_KEY,
-        PointLatLng(_pStart.latitude, _pStart.longitude),
-        PointLatLng(_pEnd.latitude, _pEnd.longitude),
-        travelMode: TravelMode.driving);
+      GOOGLE_MAPS_API_KEY,
+      PointLatLng(_pStart!.latitude, _pStart!.longitude),
+      PointLatLng(_pEnd!.latitude, _pEnd!.longitude),
+      travelMode: TravelMode.driving,
+    );
     if (result.points.isNotEmpty) {
       for (var point in result.points) {
         polylineCoordinates.add(LatLng(point.latitude, point.longitude));
@@ -222,6 +614,9 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       _polyLines[id] = polyline;
     });
-    await updateCameraLocation(_pStart, _pEnd, await _mapController.future);
+    _pStart != null && _pEnd != null
+        ? await updateCameraLocation(
+            _pStart!, _pEnd!, await _mapController.future)
+        : null;
   }
 }
