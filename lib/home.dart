@@ -24,7 +24,8 @@ class _HomePageState extends State<HomePage> {
   LatLng? _currentLocation;
   double mapFlex = 9;
   double bottomBarFlex = 5;
-  double mapPadding = 0;
+  bool isUsingCurrentLocationAsSource = true;
+  bool isBookingNow = false;
   final TextEditingController _sourceController =
       TextEditingController(text: 'Current Location');
   final TextEditingController _destinationController = TextEditingController();
@@ -49,6 +50,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  // map
   Widget MapWidget() {
     return Expanded(
       flex: mapFlex.toInt(),
@@ -90,11 +92,16 @@ class _HomePageState extends State<HomePage> {
                 GoogleMap(
                   myLocationButtonEnabled: false,
                   myLocationEnabled: true,
-                  zoomGesturesEnabled: false,
+                  zoomGesturesEnabled: true,
                   rotateGesturesEnabled: false,
                   padding: EdgeInsets.only(
                     top: MediaQuery.of(context).padding.top,
                   ),
+                  onCameraMove: (position) {
+                    setState(() {
+                      // mapPadding = 0;
+                    });
+                  },
                   onMapCreated: ((GoogleMapController controller) =>
                       _mapController.complete(controller)),
                   initialCameraPosition: CameraPosition(
@@ -156,7 +163,8 @@ class _HomePageState extends State<HomePage> {
                               }),
                     },
                     child: Container(
-                      padding: const EdgeInsets.all(14),
+                      height: 40,
+                      width: 40,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(100),
                         color: Colors.white,
@@ -170,8 +178,8 @@ class _HomePageState extends State<HomePage> {
                       ),
                       child: Icon(
                         Icons.my_location_rounded,
-                        size: 28,
-                        color: elementPrimaryColor,
+                        size: 22,
+                        color: elementSecondaryColor,
                       ),
                     ),
                   ),
@@ -181,37 +189,129 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  // bottom bar
   Widget BottomBarWidget() {
     return Expanded(
       flex: bottomBarFlex.toInt(),
       child: Container(
         width: double.infinity,
         color: Colors.white,
-        child: Column(
-          children: mapFlex == 9
-              ? [
-                  searchDestinationButton(),
-                  FavoritePlacesWidget(),
-                ]
-              : [
-                  Row(
-                    children: [
-                      Expanded(
-                          child: Column(
-                        children: [
-                          selectSourceButton(),
-                          selectDestinationButton(),
-                        ],
-                      )),
-                    ],
-                  )
-                ],
-        ),
+        child: mapFlex == 9 ? bottomBarDefault() : bottomBarCustom(),
       ),
     );
   }
 
-  Widget selectSourceButton() {
+  // bottom bar with frequent destinations
+  Widget bottomBarDefault() {
+    return Column(
+      children: [
+        searchDestinationButton(),
+        FavoritePlacesWidget(),
+      ],
+    );
+  }
+
+  // bottom bar with navigation options, date options and search bar
+  Widget bottomBarCustom() {
+    return Column(
+      children: [
+        bottomBarNavOptions(),
+        const SizedBox(height: 10),
+        bottomBarDateOptions(),
+        const SizedBox(height: 10),
+      ],
+    );
+  }
+
+  // custom source and destination selection
+  Widget bottomBarNavOptions() {
+    return Row(
+      children: [
+        Container(
+          margin: const EdgeInsets.only(left: 15, top: 10),
+          child: IntrinsicHeight(
+            child: Column(
+              children: [
+                Icon(
+                  Icons.circle_rounded,
+                  size: 8,
+                  color: elementPrimaryColor,
+                ),
+                Container(
+                    height: 40,
+                    width: 1,
+                    color: elementSecondaryColor,
+                    margin:
+                        const EdgeInsets.symmetric(vertical: 5, horizontal: 0)),
+                Icon(
+                  Icons.square_rounded,
+                  size: 8,
+                  color: elementSecondaryColor,
+                ),
+              ],
+            ),
+          ),
+        ),
+        Expanded(
+          child: Column(
+            children: [
+              selectSourceTextfield(),
+              selectDestinationButton(),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // booking now or schedule
+  Widget bottomBarDateOptions() {
+    return Row(
+      children: [
+        Expanded(
+          child: TextButton(
+            onPressed: () {
+              setState(() {
+                isBookingNow = true;
+              });
+            },
+            style: TextButton.styleFrom(
+              foregroundColor:
+                  isBookingNow ? elementPrimaryColor : elementSecondaryColor,
+              backgroundColor:
+                  isBookingNow ? elementSecondaryColor : Colors.grey.shade200,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(0),
+              ),
+            ),
+            child: const Text("Now"),
+          ),
+        ),
+        Expanded(
+          child: TextButton(
+            onPressed: () {
+              setState(() {
+                isBookingNow = false;
+              });
+            },
+            style: TextButton.styleFrom(
+              foregroundColor:
+                  isBookingNow ? elementSecondaryColor : elementPrimaryColor,
+              backgroundColor:
+                  isBookingNow ? Colors.grey.shade200 : elementSecondaryColor,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(0),
+              ),
+            ),
+            child: const Text("Schedule"),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // custom source selection textfield
+  Widget selectSourceTextfield() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
       child: SingleChildScrollView(
@@ -298,6 +398,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  // custom destination selection textfield
   Widget selectDestinationButton() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 0),
@@ -362,6 +463,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  // WHERE TO? button -> custom destination selection
   Widget searchDestinationButton() {
     return GestureDetector(
       onTap: () => {
@@ -402,17 +504,20 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  // frequent destinations
   Widget FavoritePlacesWidget() {
     return Column(
       children: [
-        shortCutWidget(1, "VIT Vellore, Tamil Nadu", "0 km"),
-        shortCutWidget(2, "Katpadi Railway Station", "3.1 km"),
-        shortCutWidget(3, "Chennai Airport, Tamil Nadu", "129 km"),
+        shortCutWidget(1, "VIT Vellore, Tamil Nadu", "0 km", 23),
+        shortCutWidget(2, "Katpadi Railway Station", "3.1 km", 14),
+        shortCutWidget(3, "Chennai Airport, Tamil Nadu", "129 km", 5),
       ],
     );
   }
 
-  Widget shortCutWidget(double index, String destination, String distance) {
+  // frequent destinations widget
+  Widget shortCutWidget(
+      double index, String destination, String distance, int waitingNumber) {
     return GestureDetector(
       onTap: () => {
         setState(() {
@@ -478,12 +583,24 @@ class _HomePageState extends State<HomePage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(destination),
-                        Text(
-                          distance,
-                          style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.grey.shade600,
-                              fontWeight: FontWeight.w600),
+                        Row(
+                          children: [
+                            Text(
+                              distance,
+                              style: TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.grey.shade600,
+                                  fontWeight: FontWeight.w600),
+                            ),
+                            const SizedBox(width: 5),
+                            Text(
+                              "$waitingNumber requests",
+                              style: TextStyle(
+                                  fontSize: 10,
+                                  color: elementPrimaryColor,
+                                  fontWeight: FontWeight.w600),
+                            ),
+                          ],
                         ),
                       ],
                     ),

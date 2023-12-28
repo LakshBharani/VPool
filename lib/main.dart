@@ -19,6 +19,7 @@ Future<void> main() async {
   runApp(const MyApp());
 }
 
+// initialising firebase instance
 final supabase = Supabase.instance.client;
 
 class MyApp extends StatelessWidget {
@@ -34,6 +35,7 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         fontFamily: GoogleFonts.poppins().fontFamily,
       ),
+      // set flow of application
       initialRoute: '/',
       routes: {
         '/': (context) => const SplashScreen(),
