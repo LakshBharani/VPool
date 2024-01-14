@@ -1,16 +1,7 @@
-# vpool
+# VPool
 
 Carpooling app for VITians
 
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Features
+* Cross platform mobile application designed to connect students of VIT Vellore, looking to carpool in and outside of Vellore, with each other.
+* Has features like, User Auth via VIT student emails, user verification via OTP services, Google API implementation (Maps, Places), scheduling rides, setting carpool partner parameters (gender, number of people sharing, etc), live location service, timely notification updates, intelligent pairing of students using various parameters.
